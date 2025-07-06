@@ -1,0 +1,82 @@
+use librarydb;
+
+--  1)  List all books whose quantity is more than the average quantity available across all books.
+
+SELECT B.TITLE, B.QUANTITYAVAILABLE FROM BOOKS AS B 
+WHERE QUANTITYAVAILABLE > (SELECT avg(quantityavailable) from books);
+
+--  2) Display members who have borrowed more books than the average number of books borrowed by all members.
+
+SELECT M.FULLNAME, COUNT(L.LOANID) AS QUANTITY  -- GIVES RECORD MORE THAN AVG COUNT 
+FROM MEMBERS AS M
+LEFT JOIN LOANS AS L ON M.MEMBERID = L.MEMBERID  
+GROUP BY M.FULLNAME
+HAVING COUNT(L.LOANID) > (           -- CONDITION WHERE CHECK L.LOANID IS GREATER THAN AVG BORROW BOOK
+SELECT AVG(BookCount) as bookcount  -- CALCULATE AVG OF BORROW BOOK 
+    FROM (
+        SELECT COUNT(*) AS BookCount -- THIS QUERY RETURN TOTAL BORROW BOOK COUNT 
+        FROM Loans
+        GROUP BY MEMBERID)AS AVERAGEBOOK);
+        
+SELECT * FROM LOANS;
+
+SELECT * FROM BOOKS;
+
+-- Find books that haven't been borrowed by any member. ( USING NOT EXISTS)
+
+SELECT TITLE FROM BOOKS AS B
+WHERE NOT EXISTS (SELECT 1
+  FROM Loans AS L
+  WHERE L.BookID = B.BookID); 
+  
+-- USING NOT IN FOR SIMPLA ANS SMALL DATA BASE -- NOT HANDLE NULL VALUES
+  SELECT TITLE FROM BOOKS
+  WHERE BOOKID NOT IN (SELECT BOOKID FROM LOANS);
+
+-- List all members who have not borrowed any books.
+
+SELECT FULLNAME FROM MEMBERS 
+WHERE MEMBERID NOT IN (SELECT DISTINCT MEMBERID FROM LOANS);
+SELECT * FROM BOOKS;
+
+-- USING NOT EXISTS 
+
+SELECT FULLNAME FROM MEMBERS AS M
+WHERE NOT EXISTS (SELECT 1 FROM LOANS AS L WHERE L.MEMBERID = M.MEMBERID);
+
+-- Show the title and quantity of the book with the highest quantity available.
+
+SELECT TITLE, QUANTITYAVAILABLE FROM BOOKS WHERE QUANTITYAVAILABLE =(
+SELECT MAX(QUANTITYAVAILABLE) FROM BOOKS);
+
+-- List members who borrowed books from the 'Fantasy' category.
+
+SELECT DISTINCT M.FULLNAME, C.CATEGORYNAME FROM MEMBERS AS M 
+JOIN LOANS AS L ON M.MEMBERID = L.MEMBERID
+JOIN BOOKS AS B ON L.BOOKID = B.BOOKID
+JOIN CATEGORIES AS C ON B.CATEGORYID = C.CATEGORYID WHERE CATEGORYNAME = 'FANTASY';
+
+-- Display the names of members who have borrowed the same book more than once.
+
+SELECT M.FULLNAME, COUNT(*) AS BORROWBOOKTIME FROM MEMBERS AS M 
+JOIN LOANS AS L ON M.MEMBERID = L.MEMBERID
+JOIN BOOKS AS B ON B.BOOKID = L.BOOKID
+GROUP BY L.MEMBERID, L.BOOKID
+HAVING COUNT(*) > 1;
+
+-- Find books that are currently loaned but not yet returned (ReturnDate IS NULL).
+
+SELECT B.TITLE, L.LOANDATE FROM BOOKS AS B JOIN LOANS AS L ON B.BOOKID = L.BOOKID
+WHERE L.RETURNDATE IS NULL;
+
+-- List the names of authors whose books have never been borrowed.
+
+SELECT A.AUTHORNAME FROM AUTHORS AS A 
+WHERE NOT exists (SELECT 1 FROM BOOKS AS B JOIN LOANS AS L ON L.BOOKID = B.BOOKID
+WHERE B.AUTHORID = A.AUTHORID);	
+
+SELECT * FROM BOOKS;
+
+-- Show the staff member who has issued the maximum number of loans.
+
+
